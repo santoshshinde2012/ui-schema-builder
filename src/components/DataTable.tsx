@@ -1,9 +1,6 @@
 import React, { useState } from "react";
-import { Table, Button, Tooltip, Radio } from "antd";
-import {
-  DeleteOutlined,
-  FolderViewOutlined,
-} from "@ant-design/icons";
+import { Table, Button, Tooltip, Radio, Modal } from "antd";
+import { DeleteOutlined, FolderViewOutlined } from "@ant-design/icons";
 import { ColumnsType } from "antd/lib/table";
 import classNames from "classnames";
 import { Item } from "../types";
@@ -12,16 +9,16 @@ interface TableComponentProps {
   items: Item[];
   onSelect: (item: Item | undefined) => void;
   onRemove: (id: number) => void;
-  showJsonSchema: () => void;
 }
 
 const TableComponent: React.FC<TableComponentProps> = ({
   items,
   onSelect,
   onRemove,
-  showJsonSchema,
 }) => {
   const [selectedRowKey, setSelectedRowKey] = useState<React.Key | null>(null);
+  const [jsonSchema, setJsonSchema] = useState<object | null>(null);
+  const [visible, setVisible] = useState<boolean>(false);
 
   const handleRowSelection = (key: React.Key) => {
     setSelectedRowKey((prevKey) => (prevKey === key ? null : key));
@@ -32,6 +29,28 @@ const TableComponent: React.FC<TableComponentProps> = ({
     setSelectedRowKey(selectedItem);
     onSelect(selectedItem ? record : undefined);
   };
+
+  const renderBoolean = (value: boolean): string => (value ? "Yes" : "No");
+
+  const dynamicColumns = Object.keys(items[0] || {})
+    .filter(
+      (key) =>
+        key !== "children" &&
+        key !== "default" &&
+        key !== "uniqueItems" &&
+        key !== "pattern"
+    )
+    .map((key) => ({
+      title: key.charAt(0).toUpperCase() + key.slice(1),
+      dataIndex: key,
+      key: key,
+      render: (value: string | number | boolean | object | undefined) => {
+        if (typeof value === "boolean") {
+          return renderBoolean(value);
+        }
+        return value;
+      },
+    }));
 
   const columns: ColumnsType<Item> = [
     {
@@ -44,21 +63,7 @@ const TableComponent: React.FC<TableComponentProps> = ({
         />
       ),
     },
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-    },
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-    },
-    {
-      title: "Data Type",
-      dataIndex: "dataType",
-      key: "dataType",
-    },
+    ...dynamicColumns,
     {
       title: "Action",
       key: "action",
@@ -74,7 +79,10 @@ const TableComponent: React.FC<TableComponentProps> = ({
           <Tooltip title="JSON Schema">
             <Button
               icon={<FolderViewOutlined />}
-              onClick={showJsonSchema}
+              onClick={() => {
+                setJsonSchema(record);
+                setVisible(true);
+              }}
             />
           </Tooltip>
         </div>
@@ -98,6 +106,17 @@ const TableComponent: React.FC<TableComponentProps> = ({
           onClick: () => handleRowClick(record),
         })}
       />
+
+      <Modal
+        title="JSON Schema"
+        open={visible}
+        onCancel={() => {
+          setVisible(false);
+        }}
+        footer={null}
+      >
+        <pre>{JSON.stringify(jsonSchema, null, 2)}</pre>
+      </Modal>
     </div>
   );
 };

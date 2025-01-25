@@ -1,46 +1,73 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import BuilderForm from "./form";
-import { IFormField, Item } from "../../types";
-import { convertItemToFormField, createDynamicSchema } from "../../helpers";
-import { Link } from "react-router-dom";
-import { downloadJsonSchema, validateSchema } from "../../helpers/validate";
-import { Button, message } from "antd";
 import DataTable from "../../components/DataTable";
 import DrawerComponent from "../../components/Drawer";
+import { IFormField, Item } from "../../types";
+import { convertItemToFormField, createDynamicSchema } from "../../helpers";
+import { downloadJsonSchema, validateSchema } from "../../helpers/validate";
+import { Button, message, Tooltip } from "antd";
 import {
   CheckCircleOutlined,
   DownloadOutlined,
   FundViewOutlined,
 } from "@ant-design/icons";
+import { Link } from "react-router-dom";
+
+const generateNewItem = (values: IFormField, nextId: number): Item => ({
+  id: nextId,
+  name: values.name,
+  dataType: values.dataType,
+  minLength: values.minLength,
+  maxLength: values.maxLength,
+  minimum: values.minNumber,
+  maximum: values.maxNumber,
+  pattern: values.pattern,
+  uniqueItems: values.uniqueItems,
+  default: values.defaultValue,
+  children: [],
+  isOptional: values.isOptional || false,
+});
+
+const updateItemRecursively = (items: Item[], updatedItem: Item): Item[] =>
+  items.map((item) =>
+    item.id === updatedItem.id
+      ? updatedItem
+      : { ...item, children: updateItemRecursively(item.children, updatedItem) }
+  );
+
+const removeItemRecursively = (items: Item[], id: number): Item[] =>
+  items
+    .filter((item) => item.id !== id)
+    .map((item) => ({
+      ...item,
+      children: removeItemRecursively(item.children, id),
+    }));
+
+const renderNoItemsMessage = () => (
+  <div className="flex justify-center items-center h-full bg-gray-100 text-center text-gray-600">
+    <span>No records or fields available.</span>
+  </div>
+);
+
+const handleError = (error: unknown, action: string) => {
+  if (error instanceof Error) {
+    message.error(`${action} failed: ${error.message}`);
+  } else {
+    message.error(`${action} failed: Unknown error.`);
+  }
+};
 
 const SchemaBuilder: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [nextId, setNextId] = useState<number>(1);
   const [selectedItem, setSelectedItem] = useState<Item | undefined>();
-  const [jsonVisible, setJsonVisible] = useState(false);
   const [ajvVisible, setAjvVisible] = useState(false);
 
-  const jsonSchema = useMemo(() => {
-    return items.length > 0 ? createDynamicSchema(items) : {};
-  }, [items]);
+  const jsonSchema = useMemo(() => createDynamicSchema(items), [items]);
 
   const addItem = useCallback(
     (values: IFormField) => {
-      const newItem: Item = {
-        id: nextId,
-        name: values.name,
-        dataType: values.dataType,
-        minLength: values.minLength,
-        maxLength: values.maxLength,
-        minimum: values.minNumber,
-        maximum: values.maxNumber,
-        pattern: values.pattern,
-        uniqueItems: values.uniqueItems,
-        default: values.defaultValue,
-        children: [],
-        isOptional: values.isOptional || false,
-      };
-
+      const newItem = generateNewItem(values, nextId);
       setNextId((prevId) => prevId + 1);
 
       setItems((prevItems) => {
@@ -60,15 +87,7 @@ const SchemaBuilder: React.FC = () => {
   );
 
   const removeItem = useCallback((id: number) => {
-    const removeRecursive = (items: Item[]): Item[] =>
-      items
-        .filter((item) => item.id !== id)
-        .map((item) => ({
-          ...item,
-          children: removeRecursive(item.children),
-        }));
-
-    setItems((prevItems) => removeRecursive(prevItems));
+    setItems((prevItems) => removeItemRecursively(prevItems, id));
   }, []);
 
   const onUpdateItem = (values: IFormField) => {
@@ -79,64 +98,57 @@ const SchemaBuilder: React.FC = () => {
       ...values,
       children: selectedItem.children || [],
     };
-
-    setItems((prevItems) => {
-      const updateItemRecursively = (items: Item[]): Item[] =>
-        items.map((item) =>
-          item.id === selectedItem.id
-            ? updatedItem
-            : { ...item, children: updateItemRecursively(item.children) }
-        );
-
-      return updateItemRecursively(prevItems);
-    });
-
+    setItems((prevItems) => updateItemRecursively(prevItems, updatedItem));
     setSelectedItem(undefined);
   };
 
   const onDownload = () => {
     try {
       downloadJsonSchema(jsonSchema, "user-schema.json");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      message.error(`Error during download: ${error?.message}`);
+    } catch (error) {
+      handleError(error, "Download");
     }
   };
 
-  // Validate the schema
   const onValidate = async () => {
     try {
       const isValid = await validateSchema(jsonSchema);
       message.success(`Schema is valid: ${isValid}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      message.error(`Validation failed: ${error?.message}`);
+    } catch (error) {
+      handleError(error, "Validation");
     }
   };
 
-  const closeDrawer = () => {
-    setJsonVisible(false);
-    setAjvVisible(false);
-  }
-
-  const renderNoItemsMessage = () => (
-    <div className="flex justify-center items-center h-full bg-gray-100 text-center text-gray-600">
-      <span>No records or fields available.</span>
-    </div>
-  );
-
   return (
     <div className="h-screen">
-      <div className="sticky top-0 bg-white z-10 shadow-md p-4 flex justify-between items-center">
+      <div className="sticky top-0 bg-purple-950 text-white z-10 shadow-md p-3 flex justify-between items-center">
         <h1 className="text-2xl font-bold">
           <Link to="/" className="text-lg font-bold hover:underline">
             Schema Builder
           </Link>
         </h1>
         <div className="flex space-x-4">
-          <Button icon={<DownloadOutlined />} className="p-2 rounded-md" onClick={onDownload} />
-          <Button icon={<CheckCircleOutlined />} className="p-2 rounded-md" onClick={onValidate} />
-          <Button icon={<FundViewOutlined />} className="p-2 rounded-md" onClick={() => setAjvVisible(true)} />
+          <Tooltip title="Download">
+            <Button
+              icon={<DownloadOutlined />}
+              className="p-2 rounded-md"
+              onClick={onDownload}
+            />
+          </Tooltip>
+          <Tooltip title="Validate AJV Schema">
+            <Button
+              icon={<CheckCircleOutlined />}
+              className="p-2 rounded-md"
+              onClick={onValidate}
+            />
+          </Tooltip>
+          <Tooltip title="View AJV Schema">
+            <Button
+              icon={<FundViewOutlined />}
+              className="p-2 rounded-md"
+              onClick={() => setAjvVisible(true)}
+            />
+          </Tooltip>
         </div>
       </div>
 
@@ -161,12 +173,16 @@ const SchemaBuilder: React.FC = () => {
               items={items}
               onRemove={removeItem}
               onSelect={setSelectedItem}
-              showJsonSchema={() => setJsonVisible(true)}
             />
           )}
         </div>
       </div>
-      <DrawerComponent title={jsonVisible ? "JSON Schema Viewer" : "AJV Schema Viewer"} visible={jsonVisible || ajvVisible} jsonSchema={ajvVisible ? jsonSchema: (selectedItem ? JSON.parse(JSON.stringify(selectedItem)) : {})} onClose={closeDrawer} />
+      <DrawerComponent
+        title="AJV Schema Viewer"
+        visible={ajvVisible}
+        jsonSchema={jsonSchema}
+        onClose={() => setAjvVisible(false)}
+      />
     </div>
   );
 };
