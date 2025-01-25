@@ -1,7 +1,6 @@
-import { FaTrash } from "react-icons/fa";
 import { Item } from "../../../types";
 import { getColorByValue } from "../../../helpers";
-
+import { DeleteOutlined } from "@ant-design/icons";
 interface ItemCardProps {
   item: Item;
   onSelect: (item: Item) => void;
@@ -34,7 +33,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
         onClick={() => onRemove(item.id)}
         className="absolute top-2 right-2 text-white w-6 h-6 flex items-center justify-center"
       >
-        <FaTrash />
+        <DeleteOutlined />
       </button>
     </div>
   );
