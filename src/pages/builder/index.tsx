@@ -1,16 +1,25 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import ItemGrid from "./response/ItemGrid";
 import JsonViewer from "./response/JsonViewer";
 import BuilderForm from "./form";
 import { FaCheck, FaDownload, FaShareAlt } from "react-icons/fa";
 import { IFormField, Item } from "../../types";
-import { convertItemToFormField } from "../../helpers";
+import { convertItemToFormField, createDynamicSchema } from "../../helpers";
 import { Link } from "react-router-dom";
+import { downloadJsonSchema, validateSchema } from "../../helpers/validate";
+import { message } from "antd";
 
 const SchemaBuilder: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [nextId, setNextId] = useState<number>(1);
   const [selectedItem, setSelectedItem] = useState<Item | undefined>();
+
+  const jsonSchema = useMemo(() => {
+    if (!items || items.length === 0) {
+      return {};
+    }
+    return createDynamicSchema(items);
+  }, [items]);
 
   const addItem = (values: IFormField) => {
     const newItem: Item = {
@@ -58,12 +67,14 @@ const SchemaBuilder: React.FC = () => {
   };
 
   const onSelectItem = (item: Item) => {
-    setSelectedItem((prevItem) => (prevItem?.id === item.id ? undefined : item));
+    setSelectedItem((prevItem) =>
+      prevItem?.id === item.id ? undefined : item
+    );
   };
 
   const onUpdateItem = (values: IFormField) => {
     const updatedItem: Item = {
-      id: selectedItem!.id, // Assuming selectedItem exists when updating
+      id: selectedItem!.id,
       name: values.name,
       dataType: values.dataType,
       minLength: values.minLength,
@@ -77,7 +88,6 @@ const SchemaBuilder: React.FC = () => {
       isOptional: values.isOptional || false,
     };
 
-    // Update the selected item in the items array
     setItems((prevItems) => {
       const updateItemRecursively = (items: Item[]): Item[] =>
         items.map((item) =>
@@ -89,16 +99,27 @@ const SchemaBuilder: React.FC = () => {
       return updateItemRecursively(prevItems);
     });
 
-    // Reset the selectedItem state
     setSelectedItem(undefined);
   };
 
-  const buttonStyles = "text-white p-2 rounded-md";
-  const buttonIcons = [
-    { icon: <FaDownload size={20} />, color: "bg-blue-500" },
-    { icon: <FaCheck size={20} />, color: "bg-green-500" },
-    { icon: <FaShareAlt size={20} />, color: "bg-yellow-500" },
-  ];
+  const onDownload = () => {
+    try {
+      downloadJsonSchema(jsonSchema, "user-schema.json");
+    } catch (error) {
+      message.error(`Error during download:, ${JSON.stringify(error)}`);
+    }
+  };
+
+  const onValidate = async () => {
+    try {
+      const isValid = await validateSchema(jsonSchema);
+      message.success(`Schema is valid: ${isValid}`);
+    } catch (error) {
+      message.error(`Error during download:, ${JSON.stringify(error)}`);
+    }
+  };
+
+  const onShare = () => {};
 
   return (
     <div className="h-screen">
@@ -109,11 +130,27 @@ const SchemaBuilder: React.FC = () => {
           </Link>
         </h1>
         <div className="flex space-x-4">
-          {buttonIcons.map(({ icon, color }, index) => (
-            <button key={index} className={`${color} ${buttonStyles}`}>
-              {icon}
-            </button>
-          ))}
+          <button
+            key="download"
+            className={`bg-blue-500 text-white p-2 rounded-md`}
+            onClick={onDownload}
+          >
+            <FaDownload size={20} />
+          </button>
+          <button
+            key="validate"
+            className={`bg-green-500 text-white p-2 rounded-md`}
+            onClick={onValidate}
+          >
+            <FaCheck size={20} />
+          </button>
+          <button
+            key="validate"
+            className={`bg-yellow-500 text-white p-2 rounded-md`}
+            onClick={onShare}
+          >
+            <FaShareAlt size={20} />
+          </button>
         </div>
       </div>
 
@@ -126,7 +163,7 @@ const SchemaBuilder: React.FC = () => {
             items={items}
             selectedItem={convertItemToFormField(selectedItem)}
             onAddItem={addItem}
-            onUpdateItem={onUpdateItem}  
+            onUpdateItem={onUpdateItem}
           />
         </div>
 
@@ -140,7 +177,7 @@ const SchemaBuilder: React.FC = () => {
         </div>
 
         <div className="bg-gray-100 md:w-1/4 w-full h-1/3 md:h-full flex flex-col overflow-y-auto">
-          <JsonViewer items={items} />
+          <JsonViewer jsonSchema={jsonSchema} />
         </div>
       </div>
     </div>
