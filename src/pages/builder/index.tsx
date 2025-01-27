@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
 import BuilderForm from "./form";
-import DataTable from "../../components/DataTable";
 import DrawerComponent from "../../components/Drawer";
 import { IFormField, Item } from "../../types";
 import { convertItemToFormField, createDynamicSchema } from "../../helpers";
@@ -12,6 +11,7 @@ import {
   FundViewOutlined,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
+import ResponseView from "./response";
 
 const generateNewItem = (values: IFormField, nextId: number): Item => ({
   id: nextId,
@@ -42,12 +42,6 @@ const removeItemRecursively = (items: Item[], id: number): Item[] =>
       ...item,
       children: removeItemRecursively(item.children, id),
     }));
-
-const renderNoItemsMessage = () => (
-  <div className="flex justify-center items-center h-full bg-gray-100 text-center text-gray-600">
-    <span>No records or fields available.</span>
-  </div>
-);
 
 const handleError = (error: unknown, action: string) => {
   if (error instanceof Error) {
@@ -166,15 +160,11 @@ const SchemaBuilder: React.FC = () => {
         </div>
 
         <div className="bg-gray-100 flex-grow h-full p-2 flex flex-col overflow-y-auto shadow-[inset_6px_0px_8px_-4px_rgba(0,0,0,0.2),inset_-6px_0px_8px_-4px_rgba(0,0,0,0.2)]">
-          {items.length === 0 ? (
-            renderNoItemsMessage()
-          ) : (
-            <DataTable
-              items={items}
-              onRemove={removeItem}
-              onSelect={setSelectedItem}
-            />
-          )}
+          <ResponseView
+            items={items}
+            onRemove={removeItem}
+            onSelect={setSelectedItem}
+          />
         </div>
       </div>
       <DrawerComponent

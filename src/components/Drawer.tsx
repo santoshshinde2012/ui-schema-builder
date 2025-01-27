@@ -1,6 +1,6 @@
 import React from "react";
 import { Drawer } from "antd";
-import JsonViewer from "../pages/builder/response/JsonViewer";
+import JsonViewer from "./JsonViewer";
 
 interface DrawerComponentProps {
   title: string;
