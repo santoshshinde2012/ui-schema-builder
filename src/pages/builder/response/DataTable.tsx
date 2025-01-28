@@ -3,7 +3,7 @@ import { Table, Button, Tooltip, Radio, Modal } from "antd";
 import { DeleteOutlined, FolderViewOutlined } from "@ant-design/icons";
 import { ColumnsType } from "antd/lib/table";
 import classNames from "classnames";
-import { Item } from "../types";
+import { Item } from "../../../types";
 
 interface TableComponentProps {
   items: Item[];
@@ -32,26 +32,6 @@ const TableComponent: React.FC<TableComponentProps> = ({
 
   const renderBoolean = (value: boolean): string => (value ? "Yes" : "No");
 
-  const dynamicColumns = Object.keys(items[0] || {})
-    .filter(
-      (key) =>
-        key !== "children" &&
-        key !== "default" &&
-        key !== "uniqueItems" &&
-        key !== "pattern"
-    )
-    .map((key) => ({
-      title: key.charAt(0).toUpperCase() + key.slice(1),
-      dataIndex: key,
-      key: key,
-      render: (value: string | number | boolean | object | undefined) => {
-        if (typeof value === "boolean") {
-          return renderBoolean(value);
-        }
-        return value;
-      },
-    }));
-
   const columns: ColumnsType<Item> = [
     {
       title: "Select",
@@ -63,7 +43,27 @@ const TableComponent: React.FC<TableComponentProps> = ({
         />
       ),
     },
-    ...dynamicColumns,
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+    },
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Data Type",
+      dataIndex: "dataType",
+      key: "dataType",
+    },
+    {
+      title: "Is Optional",
+      dataIndex: "isOptional",
+      key: "isOptional",
+      render: (value: boolean | undefined) => renderBoolean(value || false),
+    },
     {
       title: "Action",
       key: "action",

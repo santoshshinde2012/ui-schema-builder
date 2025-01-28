@@ -1,6 +1,6 @@
 import React from "react";
 import { Item } from "../../../types";
-import DataTable from "../../../components/DataTable";
+import DataTable from "./DataTable";
 
 const renderNoItemsMessage = () => (
   <div className="flex justify-center items-center h-full bg-gray-100 text-center text-gray-600">
@@ -10,11 +10,16 @@ const renderNoItemsMessage = () => (
 
 interface IProps {
   items: Item[];
+  onReorder: (items: Item[]) => void;
   onSelect: (item: Item | undefined) => void;
   onRemove: (id: number) => void;
 }
 
-const ResponseView: React.FC<IProps> = ({ items, onSelect, onRemove }) => {
+const ResponseView: React.FC<IProps> = ({
+  items,
+  onSelect,
+  onRemove,
+}) => {
   return (
     <>
       {items.length === 0 ? (

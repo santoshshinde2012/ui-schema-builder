@@ -149,7 +149,7 @@ const BuilderForm: React.FC<IProps> = ({
   };
 
   return (
-    <div className="p-6 bg-gray-100 w-full min-h-screen">
+    <div className="p-0 bg-gray-100 w-full min-h-screen">
       <Form
         form={form}
         layout="vertical"

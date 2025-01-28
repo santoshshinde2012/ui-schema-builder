@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import ResponseView from "./response";
+import TreeComponent from "./response/TreeComponent";
 
 const generateNewItem = (values: IFormField, nextId: number): Item => ({
   id: nextId,
@@ -113,6 +114,10 @@ const SchemaBuilder: React.FC = () => {
     }
   };
 
+  const onReorder = async (items: Item[]) => {
+    setItems(items);
+  };
+
   return (
     <div className="h-screen">
       <div className="sticky top-0 bg-purple-950 text-white z-10 shadow-md p-3 flex justify-between items-center">
@@ -147,7 +152,7 @@ const SchemaBuilder: React.FC = () => {
       </div>
 
       <div className="flex flex-col md:flex-row h-screen">
-        <div className="bg-gray-600 md:w-1/4 w-full h-1/3 md:h-full flex flex-col overflow-y-auto">
+        <div className="md:w-[20%] bg-gray-600 flex flex-col overflow-y-auto">
           <div className="bg-gray-200 p-4 flex">
             <h4 className="text-md font-bold text-left">Define Schema Field</h4>
           </div>
@@ -159,12 +164,20 @@ const SchemaBuilder: React.FC = () => {
           />
         </div>
 
-        <div className="bg-gray-100 flex-grow h-full p-2 flex flex-col overflow-y-auto shadow-[inset_6px_0px_8px_-4px_rgba(0,0,0,0.2),inset_-6px_0px_8px_-4px_rgba(0,0,0,0.2)]">
+        <div className="flex-1 bg-gray-100 p-2 flex flex-col overflow-y-auto shadow-[inset_6px_0px_8px_-4px_rgba(0,0,0,0.2),inset_-6px_0px_8px_-4px_rgba(0,0,0,0.2)]">
           <ResponseView
             items={items}
             onRemove={removeItem}
             onSelect={setSelectedItem}
+            onReorder={onReorder}
           />
+        </div>
+
+        <div className="md:w-[30%] bg-gray-100 overflow-y-auto">
+          <div className="bg-gray-200 p-4 flex">
+            <h4 className="text-md font-bold text-left">Schema Tree</h4>
+          </div>
+          <TreeComponent items={items} setUpdatedItems={setItems} />
         </div>
       </div>
       <DrawerComponent
